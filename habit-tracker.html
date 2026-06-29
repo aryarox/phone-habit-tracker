@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f0f10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Habit Tracker">
+<title>Habit Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0f0f10;
+  --surface: #1a1a1c;
+  --surface2: #242427;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0f0ee;
+  --text2: #a0a09a;
+  --text3: #666660;
+  --radius: 12px;
+  --accent: #2a78d6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; }
+body { display: flex; flex-direction: column; }
+
+/* Header */
+.header {
+  background: var(--surface);
+  border-bottom: 0.5px solid var(--border);
+  padding: 14px 16px 10px;
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+.header-sub { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.month-nav { display: flex; align-items: center; gap: 8px; }
+.month-nav button {
+  background: var(--surface2); border: 0.5px solid var(--border2);
+  border-radius: 8px; width: 30px; height: 30px; cursor: pointer;
+  color: var(--text2); font-size: 16px; display: flex; align-items: center; justify-content: center;
+}
+.month-nav span { font-size: 12px; color: var(--text2); min-width: 80px; text-align: center; }
+
+/* Tab bar */
+.tabs {
+  display: flex; background: var(--surface);
+  border-bottom: 0.5px solid var(--border);
+  position: sticky; top: 65px; z-index: 99;
+}
+.tab {
+  flex: 1; padding: 10px 4px; text-align: center;
+  font-size: 12px; color: var(--text3); cursor: pointer;
+  border-bottom: 2px solid transparent; transition: all 0.15s;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 500; }
+
+/* Pages */
+.page { display: none; flex: 1; overflow-y: auto; padding: 14px; padding-bottom: 20px; }
+.page.active { display: block; }
+
+/* Stats row */
+.stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.stat-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px;
+}
+.stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+.stat-val { font-size: 24px; font-weight: 600; }
+.stat-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* Habit list */
+.habit-list { display: flex; flex-direction: column; gap: 2px; }
+.habit-row {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 11px 13px;
+  display: flex; align-items: center; gap: 10px;
+}
+.habit-emoji { font-size: 18px; width: 26px; text-align: center; flex-shrink: 0; }
+.habit-info { flex: 1; min-width: 0; }
+.habit-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.habit-streak { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.habit-pct { font-size: 13px; font-weight: 600; flex-shrink: 0; min-width: 34px; text-align: right; }
+.habit-cb {
+  width: 26px; height: 26px; border-radius: 8px; flex-shrink: 0;
+  border: 1.5px solid var(--border2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.12s; background: transparent;
+}
+.habit-cb.checked { border-color: transparent; }
+.habit-cb svg { display: none; }
+.habit-cb.checked svg { display: block; }
+
+/* Calendar grid */
+.cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 14px; }
+.cal-table { border-collapse: collapse; min-width: 100%; }
+.cal-table th { font-size: 9px; color: var(--text3); padding: 5px 2px; text-align: center; font-weight: 500; min-width: 26px; position: sticky; top: 0; background: var(--bg); }
+.cal-table td { padding: 3px 2px; text-align: center; }
+.cal-habit-label {
+  font-size: 11px; color: var(--text2); padding: 3px 8px 3px 4px !important;
+  text-align: left !important; white-space: nowrap; position: sticky; left: 0;
+  background: var(--bg); min-width: 90px; max-width: 90px;
+}
+.mini-cb {
+  width: 20px; height: 20px; border-radius: 5px;
+  border: 1px solid var(--border2); cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.mini-cb.checked { border-color: transparent; }
+.today-col { background: rgba(42,120,214,0.08); }
+.today-head { color: var(--accent) !important; font-weight: 700 !important; }
+
+/* Rings grid */
+.rings-section { margin-bottom: 14px; }
+.section-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; font-weight: 500; }
+.rings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.ring-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 12px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+.ring-name { font-size: 11px; color: var(--text2); text-align: center; }
+.ring-pct { font-size: 13px; font-weight: 600; }
+
+/* Weekly bars */
+.weekly-section { margin-bottom: 14px; }
+.week-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.week-label { font-size: 11px; color: var(--text3); min-width: 24px; }
+.week-bar-bg { flex: 1; height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; }
+.week-bar-fill { height: 100%; border-radius: 4px; transition: width 0.4s; }
+.week-pct-label { font-size: 11px; color: var(--text2); min-width: 32px; text-align: right; }
+
+/* Chart */
+.chart-section { background: var(--surface); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+
+/* Add habit btn */
+.add-btn {
+  width: 100%; padding: 12px; background: var(--surface);
+  border: 0.5px dashed var(--border2); border-radius: var(--radius);
+  color: var(--text3); cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin-top: 8px; font-family: 'Inter', sans-serif;
+  transition: background 0.15s;
+}
+.add-btn:hover, .add-btn:active { background: var(--surface2); color: var(--text2); }
+
+/* Modal */
+.modal-bg {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 200;
+  align-items: flex-end; justify-content: center;
+}
+.modal-bg.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: 20px 20px 0 0;
+  padding: 20px; width: 100%; max-width: 480px;
+}
+.modal h2 { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+.modal input, .modal select {
+  width: 100%; padding: 11px 13px; background: var(--surface2);
+  border: 0.5px solid var(--border2); border-radius: 10px;
+  color: var(--text); font-size: 14px; margin-bottom: 10px;
+  font-family: 'Inter', sans-serif; outline: none;
+}
+.modal-actions { display: flex; gap: 8px; margin-top: 4px; }
+.modal-actions button {
+  flex: 1; padding: 12px; border-radius: 10px; font-size: 14px;
+  font-weight: 500; cursor: pointer; border: none; font-family: 'Inter', sans-serif;
+}
+.btn-cancel { background: var(--surface2); color: var(--text2); }
+.btn-save { background: var(--accent); color: #fff; }
+
+.emoji-pick { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.emoji-opt {
+  width: 36px; height: 36px; border-radius: 8px; background: var(--surface2);
+  border: 1.5px solid transparent; cursor: pointer; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+}
+.emoji-opt.selected { border-color: var(--accent); }
+
+/* Color picker */
+.color-pick { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+.color-opt {
+  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+  border: 2.5px solid transparent; transition: border-color 0.1s;
+}
+.color-opt.selected { border-color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>⛳ Habit Tracker</h1>
+    <div class="header-sub" id="date-sub"></div>
+  </div>
+  <div class="month-nav">
+    <button onclick="changeMonth(-1)">‹</button>
+    <span id="month-label"></span>
+    <button onclick="changeMonth(1)">›</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('today')">Today</div>
+  <div class="tab" onclick="showTab('calendar')">Calendar</div>
+  <div class="tab" onclick="showTab('stats')">Stats</div>
+</div>
+
+<!-- TODAY PAGE -->
+<div class="page active" id="page-today">
+  <div class="stats-row" id="today-stats"></div>
+  <div class="habit-list" id="today-habits"></div>
+  <button class="add-btn" onclick="openModal()">+ Add habit</button>
+</div>
+
+<!-- CALENDAR PAGE -->
+<div class="page" id="page-calendar">
+  <div class="cal-wrap">
+    <table class="cal-table" id="cal-table"></table>
+  </div>
+</div>
+
+<!-- STATS PAGE -->
+<div class="page" id="page-stats">
+  <div class="rings-section">
+    <div class="section-title">Monthly completion</div>
+    <div class="rings-grid" id="rings-grid"></div>
+  </div>
+  <div class="weekly-section">
+    <div class="section-title">Weekly breakdown</div>
+    <div id="weekly-bars"></div>
+  </div>
+  <div class="chart-section">
+    <div style="font-size:12px;font-weight:500;color:var(--text2);margin-bottom:10px;">Daily completion trend</div>
+    <div style="position:relative;height:140px;">
+      <canvas id="lineChart" role="img" aria-label="Daily habit completion percentage trend"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ADD HABIT MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>New habit</h2>
+    <input type="text" id="new-name" placeholder="e.g. Morning walk" maxlength="30">
+    <div class="emoji-pick" id="emoji-pick"></div>
+    <div class="color-pick" id="color-pick"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveHabit()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const EMOJIS = ['💧','🏃','📖','🧘','🥗','😴','💊','📝','☕','🚴','🎯','🧠','💪','🌿','✍️','🎵'];
+const COLORS = ['#2a78d6','#e34948','#1baf7a','#eda100','#4a3aa7','#eb6834','#e87ba4','#00b5d8','#38a169','#d69e2e'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+let selectedEmoji = EMOJIS[0], selectedColor = COLORS[0];
+let currentYear = 2026, currentMonth = 5;
+const TODAY = new Date(2026, 5, 29);
+const todayD = TODAY.getDate(), todayM = TODAY.getMonth(), todayY = TODAY.getFullYear();
+
+function getDefaultHabits() {
+  return [
+    {name:'Water',emoji:'💧',color:'#2a78d6'},
+    {name:'Workout',emoji:'🏃',color:'#e34948'},
+    {name:'Reading',emoji:'📖',color:'#1baf7a'},
+    {name:'Meditation',emoji:'🧘',color:'#4a3aa7'},
+    {name:'Eat well',emoji:'🥗',color:'#eda100'},
+    {name:'Sleep 8h',emoji:'😴',color:'#e87ba4'},
+    {name:'Vitamins',emoji:'💊',color:'#eb6834'},
+    {name:'Journal',emoji:'📝',color:'#1baf7a'},
+  ];
+}
+
+function loadHabits() {
+  try { return JSON.parse(localStorage.getItem('habits') || 'null') || getDefaultHabits(); } catch(e) { return getDefaultHabits(); }
+}
+function saveHabits(h) { try { localStorage.setItem('habits', JSON.stringify(h)); } catch(e){} }
+function loadChecks() { try { return JSON.parse(localStorage.getItem('checks') || '{}'); } catch(e) { return {}; } }
+function saveChecks(c) { try { localStorage.setItem('checks', JSON.stringify(c)); } catch(e){} }
+
+let HABITS = loadHabits();
+let CHECKS = loadChecks();
+
+// Seed past data if empty
+function seedData() {
+  let dirty = false;
+  HABITS.forEach((h, hi) => {
+    for (let d = 1; d < 29; d++) {
+      const k = `2026-5-${d}-${hi}`;
+      if (!(k in CHECKS)) { CHECKS[k] = Math.random() > 0.25; dirty = true; }
+    }
+  });
+  if (dirty) saveChecks(CHECKS);
+}
+seedData();
+
+function getKey(y, m, d, hi) { return `${y}-${m}-${d}-${hi}`; }
+function isChecked(y, m, d, hi) { return !!CHECKS[getKey(y,m,d,hi)]; }
+function toggle(y, m, d, hi) {
+  const k = getKey(y,m,d,hi);
+  CHECKS[k] = !CHECKS[k];
+  saveChecks(CHECKS);
+  render();
+}
+function getDays(y, m) { return new Date(y, m+1, 0).getDate(); }
+function getMaxDay(y, m) { return (y===todayY&&m===todayM) ? todayD : getDays(y,m); }
+
+function getStreak(hi) {
+  let s = 0;
+  for (let d = getMaxDay(currentYear,currentMonth); d >= 1; d--) {
+    if (isChecked(currentYear,currentMonth,d,hi)) s++; else break;
+  }
+  return s;
+}
+function getMonthPct(hi) {
+  const max = getMaxDay(currentYear, currentMonth);
+  let done = 0;
+  for (let d = 1; d <= max; d++) if (isChecked(currentYear,currentMonth,d,hi)) done++;
+  return max > 0 ? Math.round(done/max*100) : 0;
+}
+
+function render() {
+  renderHeader();
+  renderTodayStats();
+  renderTodayHabits();
+  renderCalendar();
+  renderRings();
+  renderWeekly();
+  renderChart();
+}
+
+function renderHeader() {
+  const d = TODAY;
+  document.getElementById('date-sub').textContent = DAY_NAMES[d.getDay()] + ', ' + MONTH_NAMES[d.getMonth()] + ' ' + d.getDate();
+  document.getElementById('month-label').textContent = MONTH_NAMES[currentMonth].slice(0,3) + ' ' + currentYear;
+}
+
+function renderTodayStats() {
+  const max = getMaxDay(currentYear, currentMonth);
+  let total=0, done=0, perfect=0, streak=0, curS=0;
+  for (let d=1;d<=max;d++) {
+    let dayDone=0;
+    HABITS.forEach((_,hi)=>{ total++; if(isChecked(currentYear,currentMonth,d,hi)){done++;dayDone++;} });
+    if(dayDone===HABITS.length){perfect++;curS++;streak=Math.max(streak,curS);}else curS=0;
+  }
+  const pct = total>0?Math.round(done/total*100):0;
+  const todayDone = HABITS.filter((_,hi)=>isChecked(currentYear,currentMonth,todayD,hi)).length;
+  document.getElementById('today-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Today</div><div class="stat-val" style="color:#2a78d6">${todayDone}/${HABITS.length}</div><div class="stat-sub">habits done</div></div>
+    <div class="stat-card"><div class="stat-label">Month</div><div class="stat-val">${pct}%</div><div class="stat-sub">overall rate</div></div>
+    <div class="stat-card"><div class="stat-label">Best streak</div><div class="stat-val">${streak}d</div><div class="stat-sub">perfect days</div></div>
+    <div class="stat-card"><div class="stat-label">Perfect days</div><div class="stat-val">${perfect}</div><div class="stat-sub">all habits</div></div>
+  `;
+}
+
+function renderTodayHabits() {
+  const el = document.getElementById('today-habits');
+  el.innerHTML = HABITS.map((h, hi) => {
+    const checked = isChecked(currentYear, currentMonth, todayD, hi);
+    const streak = getStreak(hi);
+    const pct = getMonthPct(hi);
+    return `<div class="habit-row">
+      <span class="habit-emoji">${h.emoji}</span>
+      <div class="habit-info">
+        <div class="habit-name">${h.name}</div>
+        <div class="habit-streak">${streak>=3?'🔥':'⚡'} ${streak} day streak</div>
+      </div>
+      <div class="habit-pct" style="color:${h.color}">${pct}%</div>
+      <div class="habit-cb ${checked?'checked':''}" style="${checked?`background:${h.color};`:'border-color:'+(h.color)+'55;'}"
+        onclick="toggle(${currentYear},${currentMonth},${todayD},${hi})">
+        <svg width="13" height="13" viewBox="0 0 13 13"><polyline points="2,6.5 5.5,10 11,3" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderCalendar() {
+  const days = getDays(currentYear, currentMonth);
+  const maxDay = getMaxDay(currentYear, currentMonth);
+  let html = '<thead><tr><th style="text-align:left;padding:5px 4px;font-size:9px;color:var(--text3);position:sticky;left:0;background:var(--bg);">Habit</th>';
+  for (let d=1;d<=days;d++) {
+    const isToday = (currentYear===todayY&&currentMonth===todayM&&d===todayD);
+    html += `<th class="cal-table th ${isToday?'today-head':''}">${d}</th>`;
+  }
+  html += '</tr></thead><tbody>';
+  HABITS.forEach((h, hi) => {
+    html += `<tr><td class="cal-habit-label">${h.emoji} ${h.name}</td>`;
+    for (let d=1;d<=days;d++) {
+      const checked = isChecked(currentYear,currentMonth,d,hi);
+      const isToday = (currentYear===todayY&&currentMonth===todayM&&d===todayD);
+      const isFuture = (currentYear===todayY&&currentMonth===todayM&&d>todayD);
+      html += `<td class="${isToday?'today-col':''}">
+        <div class="mini-cb ${checked?'checked':''}"
+          style="${checked?`background:${h.color};border-color:${h.color};`:''}${isFuture?'opacity:0.25;pointer-events:none;':''}"
+          onclick="toggle(${currentYear},${currentMonth},${d},${hi})">
+          ${checked?'<svg width="10" height="10" viewBox="0 0 10 10"><polyline points="2,5 4,8 8,2.5" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round"/></svg>':''}
+        </div>
+      </td>`;
+    }
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  document.getElementById('cal-table').innerHTML = html;
+}
+
+function renderRings() {
+  const el = document.getElementById('rings-grid');
+  el.innerHTML = HABITS.map((h, hi) => {
+    const pct = getMonthPct(hi);
+    const r=28, circ=2*Math.PI*r;
+    const dash=(pct/100)*circ;
+    return `<div class="ring-card">
+      <svg width="70" height="70" viewBox="0 0 70 70">
+        <circle cx="35" cy="35" r="${r}" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="5"/>
+        <circle cx="35" cy="35" r="${r}" fill="none" stroke="${h.color}" stroke-width="5"
+          stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
+          stroke-linecap="round" transform="rotate(-90 35 35)"/>
+        <text x="35" y="39" text-anchor="middle" font-size="12" font-weight="600" fill="${h.color}">${pct}%</text>
+      </svg>
+      <div class="ring-name">${h.emoji} ${h.name}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderWeekly() {
+  const days = getDays(currentYear, currentMonth);
+  const maxDay = getMaxDay(currentYear, currentMonth);
+  const weekColors = ['#2a78d6','#e34948','#1baf7a','#eda100','#4a3aa7'];
+  let weeks=[],w=[];
+  for(let d=1;d<=maxDay;d++){w.push(d);if(w.length===7||d===maxDay){weeks.push([...w]);w=[];}}
+  document.getElementById('weekly-bars').innerHTML = weeks.map((wk,wi)=>{
+    let done=0,total=0;
+    wk.forEach(d=>HABITS.forEach((_,hi)=>{total++;if(isChecked(currentYear,currentMonth,d,hi))done++;}));
+    const pct=total>0?Math.round(done/total*100):0;
+    return `<div class="week-row">
+      <span class="week-label">W${wi+1}</span>
+      <div class="week-bar-bg"><div class="week-bar-fill" style="width:${pct}%;background:${weekColors[wi%5]}"></div></div>
+      <span class="week-pct-label">${pct}%</span>
+    </div>`;
+  }).join('');
+}
+
+let lineChart = null;
+function renderChart() {
+  const maxDay = getMaxDay(currentYear, currentMonth);
+  const labels=[],data=[];
+  for(let d=1;d<=maxDay;d++){
+    labels.push(d);
+    let done=0;
+    HABITS.forEach((_,hi)=>{if(isChecked(currentYear,currentMonth,d,hi))done++;});
+    data.push(HABITS.length>0?Math.round(done/HABITS.length*100):0);
+  }
+  const ctx=document.getElementById('lineChart');
+  if(lineChart) lineChart.destroy();
+  lineChart = new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{data,borderColor:'#2a78d6',backgroundColor:'rgba(42,120,214,0.12)',borderWidth:2,pointRadius:0,tension:0.4,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>`${v.raw}%`},backgroundColor:'#242427',titleColor:'#f0f0ee',bodyColor:'#a0a09a',borderColor:'rgba(255,255,255,0.1)',borderWidth:1}},
+      scales:{
+        x:{ticks:{font:{size:9},color:'#666660',maxTicksLimit:10},grid:{display:false},border:{color:'rgba(255,255,255,0.06)'}},
+        y:{min:0,max:100,ticks:{font:{size:9},color:'#666660',callback:v=>v+'%',maxTicksLimit:5},grid:{color:'rgba(255,255,255,0.05)'},border:{color:'rgba(255,255,255,0.06)'}}
+      }
+    }
+  });
+}
+
+// Tab switching
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['today','calendar','stats'][i]===id));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+}
+
+// Month nav
+function changeMonth(dir) {
+  currentMonth+=dir;
+  if(currentMonth<0){currentMonth=11;currentYear--;}
+  if(currentMonth>11){currentMonth=0;currentYear++;}
+  render();
+}
+
+// Modal
+function openModal() {
+  selectedEmoji=EMOJIS[0]; selectedColor=COLORS[0];
+  const ep=document.getElementById('emoji-pick');
+  ep.innerHTML=EMOJIS.map(e=>`<div class="emoji-opt ${e===selectedEmoji?'selected':''}" onclick="pickEmoji('${e}',this)">${e}</div>`).join('');
+  const cp=document.getElementById('color-pick');
+  cp.innerHTML=COLORS.map(c=>`<div class="color-opt ${c===selectedColor?'selected':''}" style="background:${c}" onclick="pickColor('${c}',this)"></div>`).join('');
+  document.getElementById('new-name').value='';
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function pickEmoji(e,el) { selectedEmoji=e; document.querySelectorAll('.emoji-opt').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
+function pickColor(c,el) { selectedColor=c; document.querySelectorAll('.color-opt').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
+function saveHabit() {
+  const name=document.getElementById('new-name').value.trim();
+  if(!name) return;
+  HABITS.push({name,emoji:selectedEmoji,color:selectedColor});
+  saveHabits(HABITS);
+  closeModal();
+  render();
+}
+
+document.getElementById('modal').addEventListener('click',e=>{ if(e.target===document.getElementById('modal')) closeModal(); });
+
+render();
+</script>
+</body>
+</html>
